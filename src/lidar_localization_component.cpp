@@ -59,6 +59,7 @@ CallbackReturn PCLLocalization::on_activate(const rclcpp_lifecycle::State &)
   pose_pub_->on_activate();
   path_pub_->on_activate();
   initial_map_pub_->on_activate();
+  fitness_score_pub_->on_activate();
 
   if (set_initial_pose_) {
     auto msg = std::make_shared<geometry_msgs::msg::PoseWithCovarianceStamped>();
@@ -216,6 +217,10 @@ void PCLLocalization::initializePubSub()
   initial_map_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>(
     "initial_map",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+
+  fitness_score_pub_ = create_publisher<std_msgs::msg::Float64>(
+    "fitness_score",
+    rclcpp::QoS(rclcpp::KeepLast(1)).reliable());
 
   initial_pose_sub_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "initialpose", rclcpp::SystemDefaultsQoS(),
@@ -501,6 +506,11 @@ void PCLLocalization::cloudReceived(const sensor_msgs::msg::PointCloud2::ConstSh
   path_pub_->publish(*path_ptr_);
 
   last_scan_ptr_ = msg;
+
+  // Publish fitness score
+  auto fitness_score_msg = std::make_shared<std_msgs::msg::Float64>();
+  fitness_score_msg->data = fitness_score;
+  fitness_score_pub_->publish(*fitness_score_msg);
 
   if (enable_debug_) {
     std::cout << "number of filtered cloud points: " << filtered_cloud_ptr->size() << std::endl;
